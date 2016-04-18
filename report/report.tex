@@ -1,0 +1,38 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\title{Inflection}
+\author{Jordan Matelsky}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+In order to improve the baseline implementation of the inflection solver, I attempted two main improvements, and implemented a combinatorial function for combining the results of the naïve implementation and my two alternative implementations. This allows the user to weight the different metrics differently, and independently.
+
+\section{Part-of-Speech}
+By utilizing the provided part-of-speech data, I was able to augment the existing lemma-sort algorithm by specifying a part-of-speech as well. That is, instead of a two-deep dictionary lookup, I now provide a three-deep implementation, correlating lemmas to parts of speech to words. These are stored in \texttt{POS\_LEMMAS}.
+
+\subsection{Advantages}
+The additional knowledge does not take much more time (in my informal tests, it was approximately $O(n)$ complex in wall-clock time, most of which was spent on populating the lookup dictionary). 
+
+\subsection{Disadvantages}
+The extra lookup seemed not to improve the results dramatically, and indeed, in some cases, even harmed the accuracy of the naïve implementation. The very slight improvement in accuracy was not worth the time expense or the implementation complexity in these trials.
+
+\subsection{Results}
+Compared to a baseline of \textbf{40765 / 70974} using the naïve implementation, the PoS-implementation scored a trivially higher 40477 / 70974 (less than a single percentage-point higher), at 0.57.
+
+\section{$n$-grams}
+In this implementation, I used n-gram generation to predict the most likely word to complete a thought, given a lemma and a set of $n$-back tuples. For instance, for the tuple of lemma $\lambda$ and text $\tau$, $\left(\lambda, \tau\right)$, all tuples with the lemma $\lambda$ and $n$-gram of length $n < \texttt{NGRAM\_LENGTH}$ are considered.
+
+\subsection{Advantages}
+The $n$-gram model is a relatively high-accuracy and low-cost predictive model, even when standalone. The bounding of this prediction to a particular lemma improves its accuracy, though again, not dramatically.
+
+\subsection{Disadvantages}
+This system does not learn from its `mistakes', in that it does not adapt its ngram model as the experiments progress. This means that the accuracy of this model is highly proportional to the `universiality' of the training corpus, which means that its accuracy is bounded by the speed at which training can be performed.
+
+\end{document}
