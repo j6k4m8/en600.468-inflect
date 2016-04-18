@@ -28,6 +28,10 @@ sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 sys.stdin = codecs.getreader('utf-8')(sys.stdin) 
 
 
+# LEMMAS schema correlates (lemma, part of speech) → (word)
+POS_LEMMAS = defaultdict(defaultdict)
+LEMMAS = defaultdict(defaultdict)
+
 def inflections(lemma):
     if LEMMAS.has_key(lemma):
         return sorted(LEMMAS[lemma].keys(), lambda x,y: cmp(LEMMAS[lemma][y], LEMMAS[lemma][x]))
@@ -41,8 +45,6 @@ def best_inflection(lemma):
 if __name__ == '__main__':
     in_sents = [line.rstrip().split() for line in sys.stdin.readlines()]
 
-    # LEMMAS schema correlates (lemma, part of speech) → (word)
-    LEMMAS = defaultdict(defaultdict)
 
     def combine(a, b): return '%s.%s' % (a, b)
     def utf8read(file): return codecs.open(file, 'r', 'utf-8')
@@ -58,10 +60,10 @@ if __name__ == '__main__':
             words.rstrip().lower().split(),
             lemmas.rstrip().lower().split()
         )
-        #import pdb; pdb.set_trace()
+
         for word, lemma in lemma_pos_iter:
             LEMMAS[lemma][word] = LEMMAS[lemma].get(word, 0) + 1
-
+            POS_LEMMAS[(parts, lemma)][word] = POS_LEMMAS[(parts, lemma)].get(word, 0) + 1
     
 
     # Choose the most common inflection for each word and output them as a sentence
