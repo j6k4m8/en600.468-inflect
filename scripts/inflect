@@ -51,6 +51,19 @@ def inflections(lemma):
     return [lemma]
 
 
+def get_best_inf_using_pos(lemma):
+    """
+    Returns the best inflection for a lemma
+    """
+    if POS_LEMMAS.has_key(lemma):
+        return sorted(
+            POS_LEMMAS[lemma].keys(),
+            lambda x,y: cmp(LEMMAS[lemma][y], LEMMAS[lemma][x])
+        )
+    # Otherwise, just return it in its own array, we've never seen it before
+    return [lemma]
+
+
 def best_inflection(lemma):
     """
     The best_inflection function that comes from the original implementation.
@@ -64,7 +77,7 @@ def best_inflection_use_pos(lemma):
     but adds some further knowledge about part of speech, as per the homework
     suggestions.
     """
-    raise NotImplementedError
+    return get_best_inf_using_pos(lemma)
 
 
 def inflect_runner(data, fns=()):
@@ -94,15 +107,19 @@ if __name__ == '__main__':
     )
     for parts, words, lemmas in word_lemma_pos_iter:
         lemma_pos_iter = izip(
+            parts.rstrip().lower().split(),
             words.rstrip().lower().split(),
             lemmas.rstrip().lower().split()
         )
 
-        for word, lemma in lemma_pos_iter:
+        for part, word, lemma in lemma_pos_iter:
             LEMMAS[lemma][word] = LEMMAS[lemma].get(word, 0) + 1
-            POS_LEMMAS[(parts, lemma)][word] = \
-                     POS_LEMMAS[(parts, lemma)].get(word, 0) + 1
-    
+            if not POS_LEMMAS.has_key(lemma):
+                POS_LEMMAS[lemma] = defaultdict(defaultdict)
+            if not POS_LEMMAS[lemmas].has_key(part):
+                POS_LEMMAS[lemma][part] = defaultdict(defaultdict)
+            POS_LEMMAS[lemma][part][word] = POS_LEMMAS[lemma][part].get(word, 0) + 1
+
     # Use inflect_runner to choose the best inflection. See writeup for
     # further usage details.
     results = inflect_runner(in_sents, fns=(
