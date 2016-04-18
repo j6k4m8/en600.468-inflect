@@ -39,6 +39,9 @@ sys.stdin = codecs.getreader('utf-8')(sys.stdin)
 # LEMMAS schema correlates (lemma, part of speech) → (word)
 POS_LEMMAS = defaultdict(defaultdict)
 LEMMAS = defaultdict(defaultdict)
+NGS = defaultdict(defaultdict)
+NGRAM_LENGTH = 5
+
 
 def inflections(lemma):
     # If it exists in LEMMAS,
@@ -83,7 +86,21 @@ def best_inflection_use_pos(lemma):
     return get_best_inf_using_pos(lemma)[0]
 
 
-def inflect_runner(data, fns=()):
+def best_inflection_ngrams(lemma, prior):
+    """
+    Checks for which word best represents a lemma, weighting by which occurs
+    most commonly in the priors tuple.
+    """
+    if not NGS.has_key(lemma):
+        return best_inflection(lemma)
+    def _score_ngram(tup):
+        return tup[1] + 100 * len(set(tup[0][:-1]).intersection(prior))
+
+    maxval = max(NGS[lemma].iteritems(), key=_score_ngram)[0][-1]
+    return maxval
+
+
+def inflect_runner(data, fn=best_inflection):
     """
     Run the actual best-inflection checker. Pass functions into `fns` with a
     weight, in the form (function_name, weight) in order to run a very simple
@@ -91,7 +108,10 @@ def inflect_runner(data, fns=()):
     """
     results = []
     for line in data:
-        results.append(' '.join(fns[0](x) for x in line))
+        sent = []
+        for i in range(len(line)):
+            sent.append(fn(line[i], line[:i][-NGRAM_LENGTH:]))
+        results.append(' '.join(sent))
     return results
 
 if __name__ == '__main__':
@@ -108,6 +128,7 @@ if __name__ == '__main__':
         utf8read(combine(args.t, args.w)),
         utf8read(combine(args.t, args.l))
     )
+    priors = []
     for parts, words, lemmas in word_lemma_pos_iter:
         lemma_pos_iter = izip(
             parts.rstrip().lower().split(),
@@ -121,12 +142,15 @@ if __name__ == '__main__':
                 POS_LEMMAS[lemma] = defaultdict(defaultdict)
             POS_LEMMAS[lemma][(part, word)] = POS_LEMMAS[lemma].get((part, word), 0) + 1
 
+        if len(priors) > NGRAM_LENGTH: priors.pop(0)
+        priors.append(word)
+        for i in range(NGRAM_LENGTH):
+            NGS[lemma][tuple(priors[NGRAM_LENGTH:])] = NGS[lemma].get(tuple(priors[NGRAM_LENGTH:]), 0) + 1
+
     # Use inflect_runner to choose the best inflection. See writeup for
     # further usage details.
-    results = inflect_runner(in_sents, fns=(
-        (best_inflection, 1.)
-        #(best_inflection_use_pos, 1.)
-    ))
+    results = inflect_runner(in_sents, fn=best_inflection_ngrams)
+    #results = inflect_runner(in_sents, fn=best_inflection_use_pos)
 
     for r in results:
         print r
